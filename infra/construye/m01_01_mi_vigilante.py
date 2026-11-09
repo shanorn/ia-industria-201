@@ -11,7 +11,7 @@ import time
 import paho.mqtt.client as mqtt
 
 # --- Decisiones tuyas (las cambiarás en los pasos finales) -------------------
-DURACION_S = 20        # cuántos segundos escucha el vigilante
+DURACION_S = 180        # cuántos segundos escucha el vigilante
 PARADA_S = 2.5         # segundos sin carcasa a partir de los que se considera una parada
 
 # --- PASO 1: conectar con el broker (ya está hecho) --------------------------
