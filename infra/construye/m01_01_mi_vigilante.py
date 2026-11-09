@@ -27,16 +27,43 @@ cliente.connect("mosquitto", 1883)               # el broker, por su nombre en l
 print("conectado al broker mosquitto:1883")
 
 # --- PASO 2: suscribirse y escuchar --------------------------------------------
-# (pega aquí el bloque del paso 2)
+cliente.subscribe("linea/est01/ciclo")          # a partir de aquí el broker te reenvía cada carcasa
+cliente.loop_start()                             # paho recibe en segundo plano
+time.sleep(DURACION_S)                           # escuchas durante DURACION_S segundos
+cliente.loop_stop()
+cliente.disconnect()
+print(f"registros recibidos en {DURACION_S} s: {len(recibidos)}")
+print("primer registro:", json.dumps(recibidos[0][1], ensure_ascii=False))
 
 # --- PASO 3: leer los campos de cada registro ----------------------------------
-# (pega aquí el bloque del paso 3)
+print("pieza  secuencia  tiempo_ciclo_s")
+for _, registro in recibidos[:3]:                # los tres primeros; el _ es la hora de llegada, que aquí no usas
+    print(f"{registro['pieza_id']}  {registro['secuencia']:9d}  {registro['tiempo_ciclo_s']:14.2f}")
 
 # --- PASO 4: detectar carcasas que faltan y reinicios --------------------------
-# (pega aquí el bloque del paso 4)
+huecos = reinicios = 0
+for (_, anterior), (_, actual) in zip(recibidos, recibidos[1:]):     # cada registro con el siguiente
+    salto = actual["secuencia"] - anterior["secuencia"]
+    if salto > 1:
+        huecos += 1
+        print(f"FALTAN {salto - 1} carcasas entre {anterior['pieza_id']} y {actual['pieza_id']}")
+    elif salto < 1:
+        reinicios += 1
+        print(f"REINICIO: después de {anterior['pieza_id']} llega {actual['pieza_id']}")
+print(f"huecos={huecos} reinicios={reinicios}")
 
 # --- PASO 5: distinguir una parada de una pérdida ------------------------------
-# (pega aquí el bloque del paso 5)
+paradas = 0
+for (llegada_ant, anterior), (llegada, actual) in zip(recibidos, recibidos[1:]):
+    silencio = llegada - llegada_ant
+    if silencio > PARADA_S and actual["secuencia"] == anterior["secuencia"] + 1:
+        paradas += 1
+        print(f"PARADA de {silencio:.1f} s antes de {actual['pieza_id']} (sin carcasas perdidas)")
+print(f"paradas={paradas}")
 
 # --- PASO 6: conciliar lo fabricado con lo recibido ----------------------------
-# (pega aquí el bloque del paso 6)
+fabricadas = recibidos[-1][1]["secuencia"] - recibidos[0][1]["secuencia"] + 1
+if reinicios:
+    print("conciliación: no se puede, la estación se reinició mientras escuchabas")
+else:
+    print(f"conciliación: fabricadas={fabricadas} recibidas={len(recibidos)} sin_registro={fabricadas - len(recibidos)}")
