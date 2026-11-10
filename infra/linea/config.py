@@ -21,7 +21,7 @@ MODELO_URL = (
     "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/"
     "qwen2.5-0.5b-instruct-q4_k_m.gguf"
 )
-UMBRAL_TEMPERATURA = 70.0
+UMBRAL_TEMPERATURA = 70
 VERSION_ARRANQUE = "defecto-0.1"
 REGISTRO_PARO = 10
 

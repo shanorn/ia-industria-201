@@ -31,6 +31,16 @@ c1, c2, c3 = st.columns(3)
 c1.metric("Pieza", ultimo["pieza_id"])
 c2.metric("Temperatura (°C)", f"{ultimo['temperatura_c']:.1f}")
 c3.metric("Vibración (mm/s)", f"{ultimo['vibracion_mm_s']:.3f}")
+
+# ¿El dato está vivo? Hora del último registro y aviso si lleva más de 10 s sin llegar
+from datetime import datetime, timezone
+retraso = (datetime.now(timezone.utc) - datetime.fromisoformat(ultimo["ts"])).total_seconds()
+if retraso > 10:
+    st.warning(f"Sin datos nuevos desde hace {retraso:.0f} s (último: {ultimo['ts']}). Los indicadores no son actuales.")
+else:
+    st.caption(f"Último dato: {ultimo['ts']} (hace {retraso:.0f} s)")
+##
+
 fuera = df[df["temperatura_c"] > UMBRAL_TEMPERATURA]
 if ultimo["temperatura_c"] > UMBRAL_TEMPERATURA:
     st.error(f"Por encima del margen ({UMBRAL_TEMPERATURA:.0f} °C).")
