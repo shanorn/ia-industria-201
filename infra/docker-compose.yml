@@ -77,9 +77,22 @@ services:
     volumes: *datos
     mem_limit: 512m
 
+  modelo:                  # descarga única del GGUF a ./modelos; si ya está, termina enseguida
+    build: .
+    command: ["linea.descargar_modelo"]
+    environment: *entorno
+    volumes:
+      - ./linea:/opt/linea
+      - ./modelos:/modelos
+    mem_limit: 512m
+    restart: "no"
+
   llm:
     build: .
     command: ["linea.llm_servicio"]
+    depends_on:
+      modelo:
+        condition: service_completed_successfully
     ports:
       - "8088:8088"
     environment: *entorno

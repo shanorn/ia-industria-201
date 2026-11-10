@@ -30,9 +30,10 @@ Vas a comprobar que el fichero del modelo está en el puesto. Un modelo local es
 ls -lh modelos/
 
 # Solo si no está: descarga única (~470 MB)
-curl -L -o modelos/qwen2.5-0.5b-instruct-q4_k_m.gguf \
-  https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf
+docker compose run --rm modelo
 ```
+
+Si te lo saltas no pasa nada: `docker compose up -d llm` arranca antes el servicio `modelo`, que baja el fichero si falta. Con `-d` no ves el progreso; por eso es mejor hacerlo aquí.
 
 **Resultado esperado:** un fichero `qwen2.5-0.5b-instruct-q4_k_m.gguf` de unos 470 MB.
 
