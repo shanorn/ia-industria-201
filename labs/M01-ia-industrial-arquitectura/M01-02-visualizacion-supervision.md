@@ -14,7 +14,7 @@ Comprender qué es la **[observabilidad](../glosario/02-observabilidad.md#observ
 
 - M01-01 hecho: mosquitto, sensor y archivador en marcha.
 - RAM adicional del panel: hasta 512 MB. Puerto 8501 libre.
-- Para la sección «IA sobre el dato»: el modelo de `infra/modelos/` y unos 2 GB más para el contenedor `llm`.
+- Para la sección «IA sobre el dato»: unos 2 GB más para el contenedor `llm` y, si aún no está en `infra/modelos/`, salida a Hugging Face para bajar el modelo (~470 MB, una sola vez).
 
 ### Qué está pasando
 
@@ -318,6 +318,8 @@ Si quieres volver al panel original: `git checkout linea/panel.py` y `docker com
 Necesita el modelo en marcha. Si tienes [Prometheus](../glosario/02-observabilidad.md#prometheus) arrancado, puedes pararlo un momento para dejar memoria:
 
 ```bash
+# baja el fichero del modelo si aún no lo tienes (~470 MB, solo la primera vez)
+docker compose run --rm modelo
 docker compose up -d llm
 # espera a que conteste: {"estado":"ok",...}
 curl -s http://localhost:8088/salud
@@ -595,6 +597,7 @@ done | sort | uniq -c
 | El cambio de margen no se ve | el panel no se reinició | `docker compose restart panel` |
 | El panel da un error en rojo tras editar `panel.py` | falta un paréntesis o la sangría no cuadra | compara con el bloque del lab, o `git checkout linea/panel.py` |
 | `lab resumen` da error de conexión con `http://llm:8088` | el modelo no está en marcha o sigue cargando | `docker compose up -d llm` y espera a `/salud` |
+| `docker compose logs llm` dice `Falta el modelo en /modelos/…` | no se ha bajado el fichero del modelo | `docker compose run --rm modelo` y vuelve a `docker compose up -d llm` |
 | `NameError: name '…' is not defined` | pegaste un bloque en el hueco de otro paso, o te saltaste uno | cada bloque va debajo de su `# --- PASO N`, en orden |
 | `IndentationError` | el bloque quedó con espacios de más o de menos al pegarlo | las líneas de cada bloque empiezan en la columna 0, salvo las de dentro de `for`, `if`, `while` y `def` |
 | `ModuleNotFoundError` | ejecutaste el script con el Python de tu equipo | ejecútalo con el comando del paso 1, dentro del contenedor `lab` |

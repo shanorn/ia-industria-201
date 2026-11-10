@@ -54,7 +54,7 @@ docker compose up -d opcua modbus
 # Panel
 docker compose up -d panel
 
-# Generativo (antes, el fichero del modelo; ver M05)
+# Generativo (M01-02, M02-03 y M05): si falta el fichero del modelo, el servicio `modelo` lo baja antes (~470 MB, una vez)
 docker compose up -d llm
 
 # Servicio del clasificador (después de M03-03)
@@ -104,7 +104,7 @@ En el M05, detén el panel (`docker compose stop panel`) antes de arrancar `llm`
 | M04-01 a M04-04 | `lab` | ~0,5 GB | ~80 PNG pequeñas | no |
 | M05-01 a M05-04 | `llm` (+ sensor en M05-04) | hasta 2 GB | ~470 MB del GGUF | solo la primera descarga |
 | M05-05 | solo `lab` | hasta 2 GB | ~1,7 GB más (dos modelos abiertos) | descarga en el paso 1 |
-| M01-02 (IA sobre el dato), M02-03 (notas de turno) | además, `llm` | hasta 2 GB más | — | no |
+| M01-02 (IA sobre el dato), M02-03 (notas de turno) | además, `llm` | hasta 2 GB más | ~470 MB del GGUF | solo la primera descarga |
 | M06-01 | `lab` con el modelo de M03 | ~0,4 GB | — | no |
 | M06-02 | `lab` + mosquitto + modbus + sensor | ~0,7 GB | — | no |
 | M06-03 | mosquitto, sensor, archivador, prometheus (con 10 min de métricas normales) | ~0,8 GB | `metricas.csv`, `modelo_termico.json`, `actuaciones.jsonl` | no |

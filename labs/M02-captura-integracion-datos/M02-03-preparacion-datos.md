@@ -241,6 +241,8 @@ Vas a pedírselo al **[modelo de lenguaje](../glosario/04-ia-generativa.md#llm) 
 Necesita el modelo en marcha:
 
 ```bash
+# baja el fichero del modelo si aún no lo tienes (~470 MB, solo la primera vez)
+docker compose run --rm modelo
 docker compose up -d llm
 curl -s http://localhost:8088/salud
 ```
