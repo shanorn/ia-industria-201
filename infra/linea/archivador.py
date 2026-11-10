@@ -63,6 +63,14 @@ def main() -> None:
 
     cliente = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="archivador-est01")
     cliente.on_message = on_message
+
+    # Suscribirse cada vez que se conecta, también tras una reconexión
+    # def on_connect(client, _userdata, _flags, _reason, _properties):
+    #    client.subscribe(TOPIC_CICLO)
+    #    print("archivador: suscrito a", TOPIC_CICLO, flush=True)
+
+    # cliente.on_connect = on_connect
+
     while True:
         try:
             cliente.connect(MQTT_HOST, MQTT_PORT, 30)
