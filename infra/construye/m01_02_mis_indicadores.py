@@ -13,7 +13,7 @@ import pandas as pd
 # --- Decisiones tuyas (las cambiarás en los pasos finales) -------------------
 VENTANA = 120              # cuántas lecturas recientes miran los indicadores (las mismas que el panel)
 MARGEN_C = 70.0            # temperatura a partir de la cual una lectura está fuera de margen
-MAX_ANTIGUEDAD_S = 10      # a partir de cuántos segundos sin datos nuevos el dato ya no es actual
+MAX_ANTIGUEDAD_S = 2      # a partir de cuántos segundos sin datos nuevos el dato ya no es actual
 CICLO_NOMINAL_S = 1.0      # lo que debería tardar la estación en hacer una carcasa
 
 # --- PASO 1: leer el histórico (ya está hecho) -------------------------------
@@ -25,16 +25,27 @@ df = df.iloc[::-1]                     # de la más antigua a la más reciente
 print(f"lecturas leídas del histórico: {len(df)}")
 
 # --- PASO 2: la última carcasa y cuánto hace que llegó -------------------------
-# (pega aquí el bloque del paso 2)
+ultima = df.iloc[-1]
+hora = datetime.fromisoformat(ultima["ts"])                    # la hora con la que la guardó el archivador
+antiguedad_s = (datetime.now(timezone.utc) - hora).total_seconds()
+print(f"última carcasa: {ultima['pieza_id']} a {ultima['temperatura_c']} °C, hace {antiguedad_s:.0f} s")
 
 # --- PASO 3: decidir si el dato está vivo --------------------------------------
-# (pega aquí el bloque del paso 3)
+vivo = antiguedad_s <= MAX_ANTIGUEDAD_S
+estado = "VIVO" if vivo else f"CONGELADO (sin datos nuevos desde hace {antiguedad_s:.0f} s)"
+print(f"estado del dato: {estado}")
 
 # --- PASO 4: lecturas fuera de margen ------------------------------------------
-# (pega aquí el bloque del paso 4)
+fuera = int((df["temperatura_c"] > MARGEN_C).sum())
+print(f"temperatura media={df['temperatura_c'].mean():.2f} °C  lecturas fuera de margen={fuera} de {len(df)}")
 
 # --- PASO 5: el ritmo de la estación -------------------------------------------
-# (pega aquí el bloque del paso 5)
+ciclo_medio = df["tiempo_ciclo_s"].mean()
+rendimiento = CICLO_NOMINAL_S / ciclo_medio                    # 1,0 = al ritmo previsto
+print(f"tiempo de ciclo medio={ciclo_medio:.2f} s  rendimiento={rendimiento:.0%}")
 
 # --- PASO 6: un informe de una línea -------------------------------------------
-# (pega aquí el bloque del paso 6)
+if vivo:
+    print(f"INFORME EST-01: {ultima['pieza_id']} {ultima['temperatura_c']} °C | fuera de margen {fuera}/{len(df)} | rendimiento {rendimiento:.0%}")
+else:
+    print(f"INFORME EST-01: SIN DATOS ACTUALES desde hace {antiguedad_s:.0f} s; último dato {ultima['pieza_id']} {ultima['temperatura_c']} °C")
