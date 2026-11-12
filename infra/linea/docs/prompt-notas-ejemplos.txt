@@ -11,5 +11,8 @@ JSON: {"pieza": "", "hora": "09:50", "causa": "ninguna"}
 Nota: a las 10h05 se calienta el husillo por falta de refrigerante, revisar P0322
 JSON: {"pieza": "P0322", "hora": "10:05", "causa": "refrigeracion"}
 
+Nota: 16:05 la cámara de inspección no enciende, piezas sin foto desde la P0990
+JSON: {"pieza": "P0990", "hora": "16:05", "causa": "camara"}
+
 Nota: {nota}
-JSON:
+JSON: 
