@@ -12,7 +12,7 @@ import httpx
 # --- Decisiones tuyas (las cambiarás en los pasos finales) -------------------
 LIMITE_S = 15          # segundos sin guardar a partir de los que algo va mal
 FOR_S = 5              # cuánto tiempo seguido tiene que cumplirse para disparar
-VIGILAR_S = 60         # cuánto tiempo vigila tu alerta
+VIGILAR_S = 30         # cuánto tiempo vigila tu alerta
 CADA_S = 5             # cada cuánto pregunta (lo mismo que tarda Prometheus en recoger)
 
 # --- PASO 1: preguntar a Prometheus (ya está hecho) --------------------------
