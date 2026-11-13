@@ -15,6 +15,7 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier      # arriba, con los demás import
 
 SENALES = ["temperatura_c", "vibracion_mm_s", "corriente_a", "presion_bar"]
 VERSION = "defecto-0.2"     # el nombre con el que quedará el elegido
@@ -34,12 +35,50 @@ print(f"entrenar={len(entrenar)} examen={len(examen)} defectos_en_examen={int(ex
 
 # --- PASO 2: escribir la regla antes de mirar ----------------------------------
 # (pega aquí el bloque del paso 2)
+REGLA = "más defectos encontrados; si empatan, menos falsas alarmas"
+
+def clave(resultado):
+    return (resultado["recall"], -resultado["fpr"])     # Python compara la tupla de izquierda a derecha
+
+print(f"regla de elección: {REGLA}")
+
+
 
 # --- PASO 3: los candidatos ----------------------------------------------------
 # (pega aquí el bloque del paso 3)
+candidatos = {
+    "logreg": LogisticRegression(class_weight="balanced", max_iter=400),
+    "arbol": DecisionTreeClassifier(max_depth=3, class_weight="balanced", random_state=7),
+    "red": make_pipeline(StandardScaler(), MLPClassifier(hidden_layer_sizes=(64, 32), max_iter=1000, random_state=0)),
+    "red128": make_pipeline(StandardScaler(), MLPClassifier(hidden_layer_sizes=(256, 128), max_iter=4000, random_state=0)),
+    "bosque": RandomForestClassifier(n_estimators=200, class_weight="balanced", random_state=0),
+    "bosqueDoble": RandomForestClassifier(n_estimators=400, class_weight="balanced", random_state=0),
+    "bosqueDobleRandom": RandomForestClassifier(n_estimators=1000, class_weight="balanced", random_state=1),
+}
+print(f"candidatos: {list(candidatos)}")
 
 # --- PASO 4: examinarlos con la misma vara -------------------------------------
 # (pega aquí el bloque del paso 4)
+resultados = {nombre: examinar(modelo) for nombre, modelo in candidatos.items()}
+print("candidato  encontrados  falsas_alarmas")
+for nombre, r in resultados.items():
+    print(f"{nombre:9s}  {r['encontrados']:5d} de 21  {r['falsas']:6d} de 210")
 
 # --- PASO 5: elegir con la regla y guardar -------------------------------------
 # (pega aquí el bloque del paso 5)
+ganador = max(resultados, key=lambda nombre: clave(resultados[nombre]))
+joblib.dump(candidatos[ganador], "/data/mi_modelo.joblib")
+ficha = {"modelo": ganador, "version": VERSION, "regla": REGLA, **resultados[ganador]}
+with open("/data/mi_modelo.json", "w") as f:
+    json.dump(ficha, f, indent=1)
+print(f"elegido: {ganador} -> mi_modelo.joblib, ficha en mi_modelo.json")
+
+# ------------- REGLA 2 ---------------------------------------------------------
+REGLA_2 = "más defectos encontrados; si empatan, el que se puede explicar; después, menos falsas alarmas"
+EXPLICABLE = {"logreg": True, "arbol": True, "red": False, "bosque": False, "red128": False, "bosqueDoble": False, "bosqueDobleRandom":False}
+
+def clave_explicable(nombre):
+    r = resultados[nombre]
+    return (r["recall"], EXPLICABLE[nombre], -r["fpr"])
+
+print(f"con la regla «{REGLA_2}»: elegido {max(resultados, key=clave_explicable)}")
