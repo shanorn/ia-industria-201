@@ -132,3 +132,31 @@ services:
       - ./construye:/construye
     mem_limit: 2g
     profiles: ["lab"]
+  n8n-carpeta:             # una vez: crea ./data/n8n, la única carpeta donde n8n puede escribir
+    build: .
+    entrypoint: ["sh", "-c", "mkdir -p /data/n8n && chown 1000:1000 /data/n8n"]
+    volumes:
+      - ./data:/data
+    restart: "no"
+
+  n8n:
+    image: n8nio/n8n:2.48.5
+    depends_on:
+      n8n-carpeta:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      TZ: Europe/Madrid
+      GENERIC_TIMEZONE: Europe/Madrid
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      N8N_RESTRICT_FILE_ACCESS_TO: /data          # el nodo de ficheros solo ve ./data (estado.json y la traza)
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./data:/data:ro                           # lee estado.json del sensor, sin poder tocarlo
+      - ./data/n8n:/data/n8n                      # aquí escribe su traza
+    mem_limit: 1g
+    restart: unless-stopped
+
+volumes:
+  n8n_data:

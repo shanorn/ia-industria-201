@@ -49,6 +49,20 @@ def chat(peticion: Peticion):
     return salida
 
 
+@app.get("/v1/models")
+def listar_modelos():
+    return {
+        "object": "list",
+        "data": [
+            {
+                "id": MODELO_PATH.name,
+                "object": "model",
+                "created": 0,
+                "owned_by": "local",
+            }
+        ],
+    }
+
 if __name__ == "__main__":
     import uvicorn
 

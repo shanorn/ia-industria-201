@@ -39,7 +39,8 @@ if retraso > 10:
     st.warning(f"Sin datos nuevos desde hace {retraso:.0f} s (último: {ultimo['ts']}). Los indicadores no son actuales.")
 else:
     st.caption(f"Último dato: {ultimo['ts']} (hace {retraso:.0f} s)")
-##
+
+
 
 fuera = df[df["temperatura_c"] > UMBRAL_TEMPERATURA]
 if ultimo["temperatura_c"] > UMBRAL_TEMPERATURA:

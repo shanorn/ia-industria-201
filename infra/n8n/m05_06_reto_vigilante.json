@@ -1,0 +1,159 @@
+{
+  "name": "M05-06 Reto vigilante",
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "v1",
+      "name": "Ciclo de la estación",
+      "type": "n8n-nodes-base.mqttTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "topics": "linea/est01/ciclo",
+        "options": {
+          "jsonParseBody": true
+        }
+      },
+      "credentials": {
+        "mqtt": {
+          "name": "Mosquitto de la línea"
+        }
+      }
+    },
+    {
+      "id": "v2",
+      "name": "¿Supera 62.5 °C?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.message.temperatura_c }}",
+              "rightValue": 62.5,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "v3",
+      "name": "Aviso",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        440,
+        -80
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s1",
+              "name": "estacion",
+              "type": "string",
+              "value": "={{ $json.message.estacion }}"
+            },
+            {
+              "id": "s2",
+              "name": "pieza",
+              "type": "string",
+              "value": "={{ $json.message.pieza_id }}"
+            },
+            {
+              "id": "s3",
+              "name": "temperatura_c",
+              "type": "number",
+              "value": "={{ $json.message.temperatura_c }}"
+            },
+            {
+              "id": "s4",
+              "name": "aviso",
+              "type": "string",
+              "value": "=El husillo de {{ $json.message.estacion }} está a {{ $json.message.temperatura_c }} °C, por encima de 62.5 °C."
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "v4",
+      "name": "Publicar aviso",
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [
+        660,
+        -80
+      ],
+      "parameters": {
+        "topic": "linea/est01/aviso",
+        "sendInputData": true,
+        "options": {}
+      },
+      "credentials": {
+        "mqtt": {
+          "name": "Mosquitto de la línea"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Ciclo de la estación": {
+      "main": [
+        [
+          {
+            "node": "¿Supera 62.5 °C?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Supera 62.5 °C?": {
+      "main": [
+        [
+          {
+            "node": "Aviso",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Aviso": {
+      "main": [
+        [
+          {
+            "node": "Publicar aviso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

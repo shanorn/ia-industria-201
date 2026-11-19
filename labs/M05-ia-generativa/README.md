@@ -3,7 +3,7 @@
 [← Página anterior](../M04-vision-control-calidad/M04-04-red-neuronal.md) · [Siguiente página →](M05-01-modelo-local.md)
 
 > [!NOTE]
-> **Cómo funciona este módulo.** Tiene cinco bloques, uno por laboratorio. En cada bloque: primero la **teoría** y una **demostración** que se proyecta en clase, paso a paso; después **practicas tú** con el laboratorio, a tu ritmo.
+> **Cómo funciona este módulo.** Tiene seis bloques, uno por laboratorio. En cada bloque: primero la **teoría** y una **demostración** que se proyecta en clase, paso a paso; después **practicas tú** con el laboratorio, a tu ritmo.
 
 ## Qué aprenderás
 
@@ -20,6 +20,7 @@
 | 3 | Asistente basado en documentación | [M05-03](M05-03-asistente-documentacion.md) |
 | 4 | Agentes con herramientas | [M05-04](M05-04-agentes.md) |
 | 5 | Elegir y servir un modelo abierto | [M05-05](M05-05-modelos-abiertos.md) |
+| 6 | El agente en un workflow visual (n8n) | [M05-06](M05-06-agentes-n8n.md) |
 
 ## Antes de empezar
 
@@ -290,6 +291,59 @@ Descargarás dos modelos abiertos, leerás su licencia, medirás en tu equipo el
 
 ---
 
+## Bloque 6 — El agente en un workflow visual
+
+### Teoría
+
+Un **[orquestador de workflows](../glosario/04-ia-generativa.md#orquestador-workflows)** como n8n monta automatizaciones uniendo nodos: un disparador (un chat, un mensaje MQTT) y pasos que leen, deciden, llaman al modelo y escriben. Con él, el agente del M05-04 se construye **sin programar**, y cada ejecución queda guardada con lo que entró y salió de cada nodo.
+
+Las reglas no cambian. Lo que el agente puede hacer lo fijan **sus nodos** y **los permisos del contenedor**, no el modelo. n8n trae nodos que escriben (MQTT, ficheros, HTTP), así que la frontera hay que ponerla a propósito.
+
+### Demostración
+
+**Qué se demuestra:** el agente del M05-04 montado en n8n, contestando con el dato del sensor y negándose a actuar, sin que el modelo intervenga en la negativa.
+
+#### Paso 1 — Arrancar n8n e importar el agente
+
+```bash
+docker compose up -d llm sensor mosquitto n8n
+```
+
+En <http://localhost:5678>: crea las credenciales `Qwen local (llm)` y `Mosquitto de la línea` como en el paso 1 del M05-06. Después, **Create workflow** → menú **…** → **Import from File** → `infra/n8n/m05_06_agente_est01.json`.
+
+#### Paso 2 — Preguntar por chat y por HTTP
+
+Abre el chat del workflow y escribe `¿Cómo está la estación EST-01 ahora?` y luego `Para la estación EST-01 ahora mismo.` Pulsa **Publish** y haz la misma pregunta desde la terminal:
+
+```bash
+curl -s -X POST http://localhost:5678/webhook/est01-agente-solucion \
+  -H 'content-type: application/json' -d '{"peticion":"¿Cómo está la estación EST-01 ahora?"}'
+```
+
+**Resultado esperado:**
+
+![Workflow del agente en n8n: dos entradas (chat y webhook) y el camino en verde por la rama de lectura](../img/M05-06-solucion.png)
+
+```text
+{"output":"La estación EST-01 se encuentra en un estado de 61.5°C con una vibración de 0.25 mm/s y una corriente de 4.11 a.","herramienta":"leer_estacion","comprobacion":"OK"}
+```
+
+**Cómo se lee:** en la primera pregunta, el camino verde pasa por `Redactar (Qwen)` y la frase lleva los números del sensor. En la segunda va por arriba, por `Negativa (sin modelo)`, y Qwen queda en gris: la negativa es un texto fijo. Con `curl` responde el mismo agente, en JSON, como lo necesitaría otro sistema.
+
+> **Qué señalar en pantalla:** «Ahora el camino del dato se ve, y el agente tiene dos puertas: una persona y otro programa. Pero lo que impide que pare la máquina no es el dibujo: es que no hay ningún nodo que pueda pararla».
+
+#### Paso 3 — La pregunta que abre el laboratorio
+
+> **Si lo montamos sin programar, ¿cómo comprobamos que la cifra es la del sensor, qué pasa cuando el modelo se cae y cómo lo guardamos para que no viva solo dentro de n8n?**
+
+### Ahora tú: M05-06
+
+→ **[M05-06 — Un agente visual con n8n](M05-06-agentes-n8n.md)**
+
+Conectarás n8n a tu Qwen local, usarás el agente hecho por chat y por `curl`, y construirás el tuyo sobre una plantilla: sensor, decisión, Qwen, traza en archivo, Mosquitto y un webhook. Lo harás resistente a la caída del modelo, lo auditarás con `lab m05-06` y lo guardarás en tu fork. Probarás también un AI Agent en el que decide el modelo, validarás lo que entra por HTTP y montarás un vigilante que avisa por MQTT.
+
+---
+
 ## Conclusiones del módulo
 
 ### Qué es la IA generativa en planta
@@ -304,6 +358,7 @@ Un modelo que redacta con soltura. Útil para explicar, resumir y asistir; pelig
 | Integrado como un servicio, con tiempo máximo y fallo controlado | M05-02 |
 | Respondiendo desde los documentos de la planta, y diciendo cuándo no lo sabe | M05-03 |
 | Con las herramientas justas, de lectura, y con traza | M05-04 |
+| Visible y auditable aunque se monte sin programar, y con plan para cuando el modelo cae | M05-06 |
 
 ### Lo que has visto romperse
 
@@ -313,6 +368,7 @@ Un modelo que redacta con soltura. Útil para explicar, resumir y asistir; pelig
 | La misma pregunta, respuestas distintas | M05-01 | No es determinista: no se usa como fuente de datos |
 | Búsqueda que trae el párrafo equivocado | M05-03 | El asistente vale lo que vale su búsqueda |
 | «Por supuesto» a una orden imposible | Demo del bloque 4 | Las acciones no pueden depender del texto del modelo |
+| Un AI Agent que nunca llama a su herramienta | M05-06 | Que decida el modelo depende del modelo y del servicio: en planta decide el workflow |
 
 ### En una frase
 

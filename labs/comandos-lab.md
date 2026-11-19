@@ -1220,6 +1220,59 @@ for ruta in ficheros:                                     # cada modelo de texto
 
 </details>
 
+---
+
+### m05-06
+
+**Qué hace:** audita la traza que escribe el agente de n8n. Lee `n8n/traza_agente.jsonl`, cuenta las respuestas de cada tipo (lecturas, negativas, sin modelo y peticiones no válidas) y **vuelve a comprobar por su cuenta** que cada respuesta marcada como `OK` contiene todos los números que dio la herramienta. No se fía del `OK` que escribió n8n. Con `m05-06-escuchar`, espera la próxima respuesta del agente en Mosquitto y comprueba que es igual a la última línea de la traza.
+
+| | |
+|--|--|
+| Variantes | `m05-06-escuchar`: espera hasta 120 s un mensaje en `linea/est01/agente` (pregunta por el chat o con `curl` mientras espera) |
+| Parámetros | `solucion`: revisa el agente importado de `infra/n8n/` (`n8n/traza_agente_solucion.jsonl` y `linea/est01/agente/solucion`) |
+| Necesita en marcha | `m05-06`: nada (solo lee el archivo) · `m05-06-escuchar`: `mosquitto`, `n8n` y el workflow del agente |
+| Lee | `n8n/traza_agente.jsonl` (o `traza_agente_solucion.jsonl`) · el topic `linea/est01/agente` (o `…/solucion`) |
+| Escribe | nada |
+| `OK` si | Hay al menos una lectura con `comprobacion: OK` cuyos números están todos en la frase, y al menos una negativa sin dato. Con `escuchar`: el mensaje de Mosquitto es idéntico a la última línea de la traza |
+| `FALLO` si | No existe la traza, alguna línea no es JSON, una lectura «OK» no contiene un número de la herramienta, una negativa lleva dato, o falta alguno de los dos tipos de respuesta. Con `escuchar`: no llega nada o no coincide |
+
+<details>
+<summary>Código (<code>infra/linea/cli.py</code>, función <code>cmd_m05_06</code>)</summary>
+
+```python
+def _numeros_ausentes(registro):
+    # números del dato de la herramienta que NO aparecen tal cual en la respuesta
+    numeros = [str(v) for v in (registro.get("dato") or {}).values() if isinstance(v, (int, float))]
+    return [n for n in numeros if n not in registro.get("respuesta", "")]
+
+def cmd_m05_06(args):
+    solucion = "solucion" in args                        # la del agente importado o la tuya
+    traza = DATA / "n8n" / ("traza_agente_solucion.jsonl" if solucion else "traza_agente.jsonl")
+    topic = "linea/est01/agente" + ("/solucion" if solucion else "")
+    if "escuchar" in args:
+        mensaje = json.loads(consumir(topic, 120))       # la próxima respuesta del agente
+        ultima = traza.read_text().strip().splitlines()[-1]
+        if json.loads(ultima) != mensaje:                                  # archivo y Mosquitto deben decir lo mismo
+            return fallo("el mensaje de Mosquitto no coincide con la última línea de la traza")
+        return ok("m05-06-escuchar", "...")
+
+    registros = [json.loads(l) for l in traza.read_text().splitlines() if l.strip()]   # JSONL: un JSON por línea
+    lecturas = [r for r in registros if r["herramienta"] == "leer_estacion" and r["comprobacion"] == "OK"]
+    negativas = [r for r in registros if r["herramienta"] == "ninguna"]
+    for r in lecturas:                                   # AUDITORÍA: se recalcula, no se cree el «OK»
+        if _numeros_ausentes(r):
+            return fallo("la traza dice OK pero la respuesta no contiene ...")
+    for r in negativas:                                  # la rama de cambio no lee ni pasa nada al modelo
+        if r["dato"] is not None:
+            return fallo("una negativa tiene dato ...")
+    ...
+    return ok("m05-06", f"{len(lecturas)} lecturas con los números del sensor y {len(negativas)} negativas sin modelo")
+```
+
+</details>
+
+Se usa en [M05-06](M05-ia-generativa/M05-06-agentes-n8n.md). La misma idea sirve para cualquier agente: quien audita **recalcula** a partir de la traza, en lugar de leer el veredicto que dejó el propio agente.
+
 ## M06 — Edge e integración OT
 
 ### m06-01

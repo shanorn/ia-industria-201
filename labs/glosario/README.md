@@ -90,6 +90,7 @@ Cada ficha dice **qué es**, **cómo es en la línea del curso**, **dónde se ro
 | [Latencia](05-operacion-gobierno.md#latencia) | Operación, MLOps y gobierno |
 | [Licencias: lo que hay que mirar antes de instalar](06-modelos-abiertos.md#licencias) | Modelos abiertos en planta |
 | [Limpieza de datos](01-datos-arquitectura.md#limpieza) | Datos y arquitectura |
+| [Llamada a herramientas (tool calling)](04-ia-generativa.md#tool-calling) | IA generativa y agentes |
 | [Mapa de registros](01-datos-arquitectura.md#mapa-registros) | Datos y arquitectura |
 | [Matriz de confusión, recall y falsas alarmas](03-aprendizaje-automatico.md#matriz-confusion) | Aprendizaje automático y visión |
 | [Mensaje retenido y Last Will](01-datos-arquitectura.md#retenido) | Datos y arquitectura |
@@ -101,6 +102,7 @@ Cada ficha dice **qué es**, **cómo es en la línea del curso**, **dónde se ro
 | [MQTT](01-datos-arquitectura.md#mqtt) | Datos y arquitectura |
 | [Observabilidad](02-observabilidad.md#observabilidad) | Observabilidad y alertas |
 | [OPC UA](01-datos-arquitectura.md#opcua) | Datos y arquitectura |
+| [Orquestador de workflows (n8n)](04-ia-generativa.md#orquestador-workflows) | IA generativa y agentes |
 | [OT e IT](01-datos-arquitectura.md#ot) | Datos y arquitectura |
 | [Palabras vacías (stopwords)](04-ia-generativa.md#palabras-vacias) | IA generativa y agentes |
 | [Pasarela (gateway)](01-datos-arquitectura.md#pasarela) | Datos y arquitectura |

@@ -1,0 +1,609 @@
+{
+  "name": "M05-06 Agente EST-01 (solución)",
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "n1",
+      "name": "Supervisor pregunta",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "options": {}
+      },
+      "webhookId": "m0506-chat-solucion"
+    },
+    {
+      "id": "n0",
+      "name": "Otro sistema llama",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "est01-agente-solucion",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "webhookId": "m0506-webhook-solucion"
+    },
+    {
+      "id": "n1b",
+      "name": "Petición",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        100
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f0",
+              "name": "peticion",
+              "type": "string",
+              "value": "={{ $json.chatInput ?? $json.body.peticion }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n2",
+      "name": "leer_estacion (sensor)",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        100
+      ],
+      "parameters": {
+        "fileSelector": "/data/estado.json",
+        "options": {}
+      }
+    },
+    {
+      "id": "n3",
+      "name": "Extraer JSON",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        100
+      ],
+      "parameters": {
+        "operation": "fromJson",
+        "options": {}
+      }
+    },
+    {
+      "id": "n4",
+      "name": "Dato para el modelo",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        880,
+        100
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f0",
+              "name": "pieza",
+              "type": "string",
+              "value": "={{ $json.data.pieza_id }}"
+            },
+            {
+              "id": "f1",
+              "name": "temperatura_c",
+              "type": "number",
+              "value": "={{ $json.data.temperatura_c }}"
+            },
+            {
+              "id": "f2",
+              "name": "vibracion_mm_s",
+              "type": "number",
+              "value": "={{ $json.data.vibracion_mm_s }}"
+            },
+            {
+              "id": "f3",
+              "name": "corriente_a",
+              "type": "number",
+              "value": "={{ $json.data.corriente_a }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n5",
+      "name": "¿Pide un cambio?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        100
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $('Petición').item.json.peticion.toLowerCase() }}",
+              "rightValue": "(para |sube|baja|cambia|escribe|apaga)",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n6",
+      "name": "Negativa (sin modelo)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1320,
+        -80
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f0",
+              "name": "respuesta",
+              "type": "string",
+              "value": "No puedo hacer eso: no tengo ninguna herramienta que cambie la estación. Avisa al responsable de turno."
+            },
+            {
+              "id": "f1",
+              "name": "herramienta",
+              "type": "string",
+              "value": "ninguna"
+            },
+            {
+              "id": "f2",
+              "name": "comprobacion",
+              "type": "string",
+              "value": "no aplica"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n7",
+      "name": "Redactar (Qwen)",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1560,
+        180
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "=Petición: {{ $('Petición').item.json.peticion }}\nDato de leer_estacion: {{ JSON.stringify($json) }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "Redacta una frase para el supervisor. Copia los números exactamente."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "n8",
+      "name": "Qwen local",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1560,
+        400
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "qwen2.5-0.5b-instruct-q4_k_m.gguf",
+          "mode": "id"
+        },
+        "responsesApiEnabled": false,
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 60,
+          "temperature": 0.1,
+          "timeout": 20000,
+          "maxRetries": 1
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "name": "Qwen local (llm)"
+        }
+      }
+    },
+    {
+      "id": "n9",
+      "name": "Comprobar números",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1820,
+        100
+      ],
+      "parameters": {
+        "jsCode": "// Los números que dio la herramienta tienen que aparecer tal cual en la frase\nconst dato = $('Dato para el modelo').first().json;\nconst frase = $json.text.trim();\nconst numeros = Object.values(dato).filter(v => typeof v === 'number').map(String);\nconst faltan = numeros.filter(n => !frase.includes(n));\nreturn [{ json: {\n  respuesta: faltan.length ? `Dato de la estación: ${JSON.stringify(dato)}` : frase,\n  herramienta: 'leer_estacion',\n  comprobacion: faltan.length ? `NO: faltan o cambian ${faltan.join(', ')}` : 'OK',\n} }];"
+      }
+    },
+    {
+      "id": "n15",
+      "name": "Sin modelo (dato tal cual)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1820,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f0",
+              "name": "respuesta",
+              "type": "string",
+              "value": "=Modelo no disponible. Dato de la estación: {{ JSON.stringify($('Dato para el modelo').first().json) }}"
+            },
+            {
+              "id": "f1",
+              "name": "herramienta",
+              "type": "string",
+              "value": "leer_estacion"
+            },
+            {
+              "id": "f2",
+              "name": "comprobacion",
+              "type": "string",
+              "value": "modelo no disponible"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n10",
+      "name": "Registro de traza",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2060,
+        100
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f0",
+              "name": "registro",
+              "type": "object",
+              "value": "={{ { hora: $now.toISO(), peticion: $('Petición').item.json.peticion, herramienta: $json.herramienta, dato: $json.herramienta === 'ninguna' ? null : $('Dato para el modelo').first().json, respuesta: $json.respuesta, comprobacion: $json.comprobacion } }}"
+            },
+            {
+              "id": "f1",
+              "name": "linea",
+              "type": "string",
+              "value": "={{ JSON.stringify({ hora: $now.toISO(), peticion: $('Petición').item.json.peticion, herramienta: $json.herramienta, dato: $json.herramienta === 'ninguna' ? null : $('Dato para el modelo').first().json, respuesta: $json.respuesta, comprobacion: $json.comprobacion }) + \"\\n\" }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n11",
+      "name": "Línea de texto",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        2280,
+        100
+      ],
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "linea",
+        "options": {}
+      }
+    },
+    {
+      "id": "n12",
+      "name": "Escribir traza (archivo)",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        2500,
+        100
+      ],
+      "parameters": {
+        "operation": "write",
+        "fileName": "/data/n8n/traza_agente_solucion.jsonl",
+        "options": {
+          "append": true
+        }
+      }
+    },
+    {
+      "id": "n13",
+      "name": "Publicar (Mosquitto)",
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [
+        2720,
+        100
+      ],
+      "parameters": {
+        "topic": "linea/est01/agente/solucion",
+        "sendInputData": false,
+        "message": "={{ $('Registro de traza').item.json.linea }}",
+        "options": {}
+      },
+      "credentials": {
+        "mqtt": {
+          "name": "Mosquitto de la línea"
+        }
+      }
+    },
+    {
+      "id": "n14",
+      "name": "Respuesta",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2940,
+        100
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f0",
+              "name": "output",
+              "type": "string",
+              "value": "={{ $('Registro de traza').item.json.registro.respuesta }}"
+            },
+            {
+              "id": "f1",
+              "name": "herramienta",
+              "type": "string",
+              "value": "={{ $('Registro de traza').item.json.registro.herramienta }}"
+            },
+            {
+              "id": "f2",
+              "name": "comprobacion",
+              "type": "string",
+              "value": "={{ $('Registro de traza').item.json.registro.comprobacion }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Supervisor pregunta": {
+      "main": [
+        [
+          {
+            "node": "Petición",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Otro sistema llama": {
+      "main": [
+        [
+          {
+            "node": "Petición",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Petición": {
+      "main": [
+        [
+          {
+            "node": "leer_estacion (sensor)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "leer_estacion (sensor)": {
+      "main": [
+        [
+          {
+            "node": "Extraer JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer JSON": {
+      "main": [
+        [
+          {
+            "node": "Dato para el modelo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dato para el modelo": {
+      "main": [
+        [
+          {
+            "node": "¿Pide un cambio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Pide un cambio?": {
+      "main": [
+        [
+          {
+            "node": "Negativa (sin modelo)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Redactar (Qwen)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qwen local": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Redactar (Qwen)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redactar (Qwen)": {
+      "main": [
+        [
+          {
+            "node": "Comprobar números",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sin modelo (dato tal cual)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Negativa (sin modelo)": {
+      "main": [
+        [
+          {
+            "node": "Registro de traza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comprobar números": {
+      "main": [
+        [
+          {
+            "node": "Registro de traza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sin modelo (dato tal cual)": {
+      "main": [
+        [
+          {
+            "node": "Registro de traza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registro de traza": {
+      "main": [
+        [
+          {
+            "node": "Línea de texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Línea de texto": {
+      "main": [
+        [
+          {
+            "node": "Escribir traza (archivo)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escribir traza (archivo)": {
+      "main": [
+        [
+          {
+            "node": "Publicar (Mosquitto)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publicar (Mosquitto)": {
+      "main": [
+        [
+          {
+            "node": "Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

@@ -21,7 +21,7 @@ IA generativa (aprendizaje profundo → transformers)
 │   ├── ✔ Instrucciones en el prompt ............ M02-03, M05-02
 │   ├── ✔ Ejemplos en el prompt (few-shot) ....... M02-03
 │   ├── ✔ RAG: buscar el texto y dárselo ......... M05-03, M07-03
-│   ├── ✔ Herramientas: que lea datos vivos ...... M05-04, M07-03
+│   ├── ✔ Herramientas: que lea datos vivos ...... M05-04, M05-06, M07-03
 │   └── ○ Ajuste fino (reentrenar con datos propios)
 │
 ├── Cómo se busca el texto en un RAG
@@ -31,8 +31,8 @@ IA generativa (aprendizaje profundo → transformers)
 │   └── ○ Híbrido (las dos, combinadas)
 │
 └── Quién decide qué herramienta usar
-    ├── ✔ El código, con un plan fijo por alerta ... M07-03
-    ├── ○ El modelo (tool calling)
+    ├── ✔ El código o el workflow, con un plan fijo ... M05-04, M05-06, M07-03
+    ├── ✔ El modelo (tool calling): se prueba, no llama ... M05-06
     └── ○ Varios agentes que se reparten el trabajo
 ```
 
@@ -116,7 +116,7 @@ IA generativa (aprendizaje profundo → transformers)
 
 **Cómo se controla:** darle el texto o el dato (RAG, herramientas), pedirle que diga «no está» si no lo encuentra, y **comprobar** su salida contra los datos, como hace `lab resumen comprobado` en el M01-02.
 
-**Lo usas en:** <!--usos:alucinacion-->[M01-02](../M01-ia-industrial-arquitectura/M01-02-visualizacion-supervision.md) · [M02](../M02-captura-integracion-datos/README.md) · [M02-01](../M02-captura-integracion-datos/M02-01-telemetria.md) · [M02-03](../M02-captura-integracion-datos/M02-03-preparacion-datos.md) · [M05](../M05-ia-generativa/README.md) · [M05-01](../M05-ia-generativa/M05-01-modelo-local.md) · [M05-02](../M05-ia-generativa/M05-02-integracion-aplicacion.md) · [M05-03](../M05-ia-generativa/M05-03-asistente-documentacion.md) · [M05-04](../M05-ia-generativa/M05-04-agentes.md) · [M06-02](../M06-edge-integracion-ot/M06-02-integracion-ot.md) · [M07-01](../M07-mlops-observabilidad/M07-01-servicio-inferencia.md) · [M07-03](../M07-mlops-observabilidad/M07-03-incidencias-agente.md) · [M08](../M08-ciberseguridad-gobierno/README.md)<!--/usos-->
+**Lo usas en:** <!--usos:alucinacion-->[M01-02](../M01-ia-industrial-arquitectura/M01-02-visualizacion-supervision.md) · [M02](../M02-captura-integracion-datos/README.md) · [M02-01](../M02-captura-integracion-datos/M02-01-telemetria.md) · [M02-03](../M02-captura-integracion-datos/M02-03-preparacion-datos.md) · [M05](../M05-ia-generativa/README.md) · [M05-01](../M05-ia-generativa/M05-01-modelo-local.md) · [M05-02](../M05-ia-generativa/M05-02-integracion-aplicacion.md) · [M05-03](../M05-ia-generativa/M05-03-asistente-documentacion.md) · [M05-04](../M05-ia-generativa/M05-04-agentes.md) · [M05-06](../M05-ia-generativa/M05-06-agentes-n8n.md) · [M06-02](../M06-edge-integracion-ot/M06-02-integracion-ot.md) · [M07-01](../M07-mlops-observabilidad/M07-01-servicio-inferencia.md) · [M07-03](../M07-mlops-observabilidad/M07-03-incidencias-agente.md) · [M08](../M08-ciberseguridad-gobierno/README.md)<!--/usos-->
 
 <a id="temperatura-llm"></a>
 ### Temperatura del modelo
@@ -154,7 +154,29 @@ IA generativa (aprendizaje profundo → transformers)
 
 **Dónde se rompe:** si el modelo decide qué herramienta usar y tiene herramientas de escritura, una mala interpretación puede **actuar sobre la planta**. La forma más segura de que no toque el proceso es no darle con qué.
 
-**Lo usas en:** <!--usos:agente-->[M01-02](../M01-ia-industrial-arquitectura/M01-02-visualizacion-supervision.md) · [M01-03](../M01-ia-industrial-arquitectura/M01-03-metricas-alertas.md) · [M05](../M05-ia-generativa/README.md) · [M05-04](../M05-ia-generativa/M05-04-agentes.md) · [M07](../M07-mlops-observabilidad/README.md) · [M07-03](../M07-mlops-observabilidad/M07-03-incidencias-agente.md) · [M08](../M08-ciberseguridad-gobierno/README.md) · [M08-01](../M08-ciberseguridad-gobierno/M08-01-evaluacion-riesgos.md)<!--/usos-->
+**Lo usas en:** <!--usos:agente-->[M01-02](../M01-ia-industrial-arquitectura/M01-02-visualizacion-supervision.md) · [M01-03](../M01-ia-industrial-arquitectura/M01-03-metricas-alertas.md) · [M05](../M05-ia-generativa/README.md) · [M05-04](../M05-ia-generativa/M05-04-agentes.md) · [M05-06](../M05-ia-generativa/M05-06-agentes-n8n.md) · [M07](../M07-mlops-observabilidad/README.md) · [M07-03](../M07-mlops-observabilidad/M07-03-incidencias-agente.md) · [M08](../M08-ciberseguridad-gobierno/README.md) · [M08-01](../M08-ciberseguridad-gobierno/M08-01-evaluacion-riesgos.md)<!--/usos-->
+
+<a id="tool-calling"></a>
+### Llamada a herramientas (tool calling)
+
+**Qué es:** la forma en que un modelo **pide** usar una herramienta. Se le envía la lista de herramientas (nombre, descripción, parámetros) y, en lugar de texto, contesta con una «llamada» en un formato fijo; el programa la ejecuta y le devuelve el resultado. Es lo que permite que **el modelo** decida qué herramienta usar.
+
+**En la línea:** en el M05-06, el nodo **AI Agent** de n8n lo intenta con `leer_estacion`, pero la herramienta no se ejecuta: el servicio `llm` del curso no pasa la lista de herramientas al modelo, y un modelo de 0,5 B lo haría mal de todos modos.
+
+**Dónde se rompe:** el modelo puede no llamar a la herramienta y contestar de memoria, llamar a la que no toca o inventar parámetros. Por eso en planta la herramienta la llama **el código** o el workflow, y el modelo solo redacta.
+
+**Lo usas en:** <!--usos:tool-calling-->[M05-06](../M05-ia-generativa/M05-06-agentes-n8n.md)<!--/usos-->
+
+<a id="orquestador-workflows"></a>
+### Orquestador de workflows (n8n)
+
+**Qué es:** una herramienta para automatizar uniendo **nodos** con flechas: un disparador (un chat, un mensaje MQTT, una hora) y pasos que leen, transforman, deciden y escriben. Cada ejecución queda registrada con la entrada y la salida de cada nodo. n8n, Node-RED o Apache Airflow son ejemplos.
+
+**En la línea:** en el M05-06, n8n monta el agente del M05-04 sin programar: lee `estado.json`, decide con un nodo If, pide a Qwen la frase, escribe la traza y publica en Mosquitto.
+
+**Dónde se rompe:** que se programe de forma visual no lo hace más seguro. Lo que puede hacer depende de los nodos que tenga y de los permisos del contenedor. Las **credenciales** se guardan aparte, cifradas, y el workflow se puede exportar a git como cualquier otro código.
+
+**Lo usas en:** <!--usos:orquestador-workflows-->[M05-06](../M05-ia-generativa/M05-06-agentes-n8n.md)<!--/usos-->
 
 <a id="runbook"></a>
 ### Runbook (procedimiento de respuesta)

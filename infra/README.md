@@ -104,6 +104,7 @@ En el M05, detén el panel (`docker compose stop panel`) antes de arrancar `llm`
 | M04-01 a M04-04 | `lab` | ~0,5 GB | ~80 PNG pequeñas | no |
 | M05-01 a M05-04 | `llm` (+ sensor en M05-04) | hasta 2 GB | ~470 MB del GGUF | solo la primera descarga |
 | M05-05 | solo `lab` | hasta 2 GB | ~1,7 GB más (dos modelos abiertos) | descarga en el paso 1 |
+| M05-06 | llm, sensor, mosquitto + n8n | hasta 3 GB | `data/n8n/traza_agente.jsonl` y el volumen de n8n, pocos MB | la imagen de n8n, la primera vez |
 | M01-02 (IA sobre el dato), M02-03 (notas de turno) | además, `llm` | hasta 2 GB más | ~470 MB del GGUF | solo la primera descarga |
 | M06-01 | `lab` con el modelo de M03 | ~0,4 GB | — | no |
 | M06-02 | `lab` + mosquitto + modbus + sensor | ~0,7 GB | — | no |

@@ -1445,6 +1445,75 @@ def cmd_m05_05(args) -> int:
         gc.collect()                                     # libera el modelo antes de cargar el siguiente
     return ok("m05-05", f"{len(ficheros)} modelos comparados con las mismas preguntas")
 
+
+TOPIC_AGENTE = "linea/est01/agente"
+
+
+def _numeros_ausentes(registro: dict) -> list[str]:
+    """Números del dato de la herramienta que no aparecen tal cual en la respuesta."""
+    dato = registro.get("dato") or {}
+    numeros = [str(v) for v in dato.values() if isinstance(v, (int, float)) and not isinstance(v, bool)]
+    return [n for n in numeros if n not in registro.get("respuesta", "")]
+
+
+def cmd_m05_06(args) -> int:
+    """Audita la traza del agente de n8n; con «escuchar», espera su próxima respuesta en Mosquitto.
+
+    Con «solucion», revisa el agente importado de infra/n8n (otra traza y otro topic)."""
+    solucion = "solucion" in args
+    traza = DATA / "n8n" / ("traza_agente_solucion.jsonl" if solucion else "traza_agente.jsonl")
+    topic = TOPIC_AGENTE + "/solucion" if solucion else TOPIC_AGENTE
+    codigo = "m05-06" + ("-escuchar" if "escuchar" in args else "") + (" solucion" if solucion else "")
+    if not traza.exists():
+        return fallo(f"no existe {traza}; pregunta al agente en el chat de n8n o con curl")
+
+    if "escuchar" in args:
+        print(f"esperando una respuesta en {topic} (hasta 120 s): pregunta ahora en el chat de n8n o con curl…", flush=True)
+        payload = consumir(topic, 120)
+        if not payload:
+            return fallo(f"no llegó nada a {topic}; revisa el nodo Publicar (Mosquitto)")
+        try:
+            mensaje = json.loads(payload)
+        except json.JSONDecodeError:
+            return fallo(f"el mensaje de {topic} no es JSON: {payload[:80]}")
+        print(f"mosquitto: {mensaje.get('peticion')!r} -> herramienta={mensaje.get('herramienta')} comprobacion={mensaje.get('comprobacion')}")
+        ultima = traza.read_text(encoding="utf-8").strip().splitlines()[-1]
+        if json.loads(ultima) != mensaje:
+            return fallo("el mensaje de Mosquitto no coincide con la última línea de la traza")
+        return ok(codigo, "el mensaje de Mosquitto es la última línea de la traza")
+
+    registros = []
+    for n, linea in enumerate(traza.read_text(encoding="utf-8").splitlines(), start=1):
+        if not linea.strip():
+            continue
+        try:
+            registros.append(json.loads(linea))
+        except json.JSONDecodeError:
+            return fallo(f"la línea {n} no es JSON; ¿falta el + \"\\n\" al final de «linea» en Registro de traza?")
+
+    lecturas = [r for r in registros if r.get("herramienta") == "leer_estacion" and r.get("comprobacion") == "OK"]
+    negativas = [r for r in registros if r.get("herramienta") == "ninguna"]
+    sin_modelo = [r for r in registros if r.get("comprobacion") == "modelo no disponible"]
+    no_validas = [r for r in registros if r.get("comprobacion") == "petición no válida"]
+    print(f"traza: {len(registros)} respuestas · {len(lecturas)} con dato comprobado · "
+          f"{len(negativas) - len(no_validas)} negativas · {len(sin_modelo)} sin modelo · {len(no_validas)} no válidas")
+    for r in registros[-3:]:
+        print(f"  {str(r.get('hora'))[11:19]}  {str(r.get('herramienta')):13s} {str(r.get('comprobacion')):20s} {r.get('peticion')}")
+
+    # Auditoría independiente: no basta con que n8n diga «OK»
+    for r in lecturas:
+        faltan = _numeros_ausentes(r)
+        if faltan:
+            return fallo(f"la traza dice OK pero la respuesta no contiene {faltan}: «{r['respuesta']}»")
+    for r in negativas:
+        if r.get("dato") is not None:
+            return fallo("una negativa tiene dato: la rama de cambio no debería leer ni pasar nada al modelo")
+    if not lecturas:
+        return fallo("no hay ninguna lectura comprobada; pregunta «¿Cómo está la estación EST-01 ahora?» (paso 7)")
+    if len(negativas) == len(no_validas):
+        return fallo("no hay ninguna negativa; pide «Para la estación EST-01 ahora mismo.»")
+    return ok(codigo, f"{len(lecturas)} lecturas con los números del sensor y {len(negativas) - len(no_validas)} negativas sin modelo")
+
 COMANDOS = {
     "m01-01": cmd_m01_01,
     "m01-02": cmd_m01_02,
@@ -1468,6 +1537,8 @@ COMANDOS = {
     "m05-03-ausente": cmd_m05_03_ausente,
     "m05-04": cmd_m05_04,
     "m05-05": cmd_m05_05,
+    "m05-06": cmd_m05_06,
+    "m05-06-escuchar": lambda args: cmd_m05_06(["escuchar", *args]),
     "m06-01": cmd_m06_01,
     "m06-02": cmd_m06_02,
     "m07-01": cmd_m07_01,

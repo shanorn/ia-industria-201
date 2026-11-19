@@ -1,0 +1,231 @@
+{
+  "name": "M05-06 Mi agente",
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "s1",
+      "name": "Nota s1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -360
+      ],
+      "parameters": {
+        "content": "## Paso 1 (ya hecho)\nEl supervisor pregunta en el chat; **Petición** deja la pregunta en `peticion`; **leer_estacion** lee `/data/estado.json` y **Extraer JSON** lo convierte en campos.\n\nPregunta en el chat y mira cada nodo.",
+        "width": 860,
+        "height": 200,
+        "color": 7
+      }
+    },
+    {
+      "id": "s2",
+      "name": "Nota s2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        800,
+        -360
+      ],
+      "parameters": {
+        "content": "## Paso 2\n**Dato para el modelo**\n\nDebajo: un *Edit Fields (Set)* con los cuatro campos.",
+        "width": 200,
+        "height": 200
+      }
+    },
+    {
+      "id": "s3",
+      "name": "Nota s3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1020,
+        -360
+      ],
+      "parameters": {
+        "content": "## Paso 3\n**¿Pide un cambio?**\n\nDebajo: un *If* y, en su salida *true*, **Negativa (sin modelo)**.",
+        "width": 420,
+        "height": 200
+      }
+    },
+    {
+      "id": "s4",
+      "name": "Nota s4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1460,
+        -360
+      ],
+      "parameters": {
+        "content": "## Paso 4\n**Redactar (Qwen)**\n\nDebajo: un *Basic LLM Chain* en la salida *false* del If, con **Qwen local** en su conector *Model*.",
+        "width": 260,
+        "height": 200
+      }
+    },
+    {
+      "id": "s5",
+      "name": "Nota s5",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1740,
+        -360
+      ],
+      "parameters": {
+        "content": "## Paso 5\n**Comprobar números**\n\nDebajo: un nodo *Code* detrás de Redactar.",
+        "width": 220,
+        "height": 200
+      }
+    },
+    {
+      "id": "s6",
+      "name": "Nota s6",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1980,
+        -360
+      ],
+      "parameters": {
+        "content": "## Paso 6\n**Traza, archivo, Mosquitto y respuesta**\n\nDebajo, en fila: *Registro de traza* → *Línea de texto* → *Escribir traza (archivo)* → *Publicar (Mosquitto)* → *Respuesta*.",
+        "width": 1080,
+        "height": 200
+      }
+    },
+    {
+      "id": "s9",
+      "name": "Nota s9",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        330
+      ],
+      "parameters": {
+        "content": "## Paso 9\n**Otra entrada: un webhook**\n\nAñade un nodo *Webhook* justo encima de esta nota y conéctalo a **Petición**.",
+        "width": 240,
+        "height": 200,
+        "color": 5
+      }
+    },
+    {
+      "id": "s10",
+      "name": "Nota s10",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1740,
+        460
+      ],
+      "parameters": {
+        "content": "## Paso 10\n**Si el modelo no está**\n\nEncima de esta nota: salida *Error* de Redactar → **Sin modelo (dato tal cual)**.",
+        "width": 240,
+        "height": 200,
+        "color": 3
+      }
+    },
+    {
+      "id": "n1",
+      "name": "Supervisor pregunta",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "options": {}
+      },
+      "webhookId": "m0506-mi-chat"
+    },
+    {
+      "id": "n1b",
+      "name": "Petición",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        100
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f0",
+              "name": "peticion",
+              "type": "string",
+              "value": "={{ $json.chatInput }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n2",
+      "name": "leer_estacion (sensor)",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        100
+      ],
+      "parameters": {
+        "fileSelector": "/data/estado.json",
+        "options": {}
+      }
+    },
+    {
+      "id": "n3",
+      "name": "Extraer JSON",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        100
+      ],
+      "parameters": {
+        "operation": "fromJson",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Supervisor pregunta": {
+      "main": [
+        [
+          {
+            "node": "Petición",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Petición": {
+      "main": [
+        [
+          {
+            "node": "leer_estacion (sensor)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "leer_estacion (sensor)": {
+      "main": [
+        [
+          {
+            "node": "Extraer JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

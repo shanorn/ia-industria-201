@@ -1,0 +1,117 @@
+{
+  "name": "M05-06 Experimento AI Agent",
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "x1",
+      "name": "Supervisor pregunta",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "options": {}
+      },
+      "webhookId": "m0506-agente-ia"
+    },
+    {
+      "id": "x2",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "options": {
+          "systemMessage": "Eres el asistente del supervisor de la estación EST-01. Usa la herramienta leer_estacion para conocer el estado actual. Copia los números exactamente."
+        }
+      }
+    },
+    {
+      "id": "x3",
+      "name": "Qwen local",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        180,
+        220
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "qwen2.5-0.5b-instruct-q4_k_m.gguf",
+          "mode": "id"
+        },
+        "responsesApiEnabled": false,
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 80,
+          "temperature": 0.1,
+          "timeout": 20000,
+          "maxRetries": 1
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "name": "Qwen local (llm)"
+        }
+      }
+    },
+    {
+      "id": "x4",
+      "name": "leer_estacion",
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        220
+      ],
+      "parameters": {
+        "toolDescription": "Lee las métricas actuales de la estación EST-01: temperatura del husillo, vibración y corriente.",
+        "url": "http://sensor:9102/metrics",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Supervisor pregunta": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qwen local": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "leer_estacion": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
