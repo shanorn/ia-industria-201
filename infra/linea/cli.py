@@ -716,7 +716,8 @@ def cmd_m06_02(args) -> int:
     )
     proba = float(modelo.predict_proba(fila)[0, 1])
     dictamen = "revisar" if proba >= _param(args, "umbral", 0.5) else "seguir"
-    evento = {"pieza_id": estado["pieza_id"], "decision": dictamen, "probabilidad": round(proba, 3)}
+    # evento = {"pieza_id": estado["pieza_id"], "decision": dictamen, "probabilidad": round(proba, 3)}
+    evento = {"pieza_id": estado["pieza_id"], "decision": dictamen, "probabilidad": round(proba, 3), "ts": estado["ts"], "version": (DATA / "VERSION").read_text().strip()}
     recibido_mqtt: dict = {}
 
     def on_dictamen(_c, _u, msg):
