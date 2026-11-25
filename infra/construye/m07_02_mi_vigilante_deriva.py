@@ -26,12 +26,46 @@ print(f"entrenamiento={len(entrenamiento)} piezas  base de comparación={len(bas
 
 # --- PASO 2: la tasa de revisar de la base -------------------------------------
 # (pega aquí el bloque del paso 2)
+def tasa_revisar(datos):
+    return float((modelo.predict_proba(datos[SENALES])[:, 1] >= 0.5).mean())
+
+tasa_base = tasa_revisar(base)
+print(f"tasa de revisar en la base: {tasa_base:.2f}")
 
 # --- PASO 3: simular que la línea se calienta ----------------------------------
 # (pega aquí el bloque del paso 3)
+movida = base.copy()
+movida["temperatura_c"] += GRADOS
+tasa = tasa_revisar(movida)
+alerta = abs(tasa - tasa_base) > TOLERANCIA
+print(f"con +{GRADOS} °C: tasa de revisar={tasa:.2f}  ->  {'DERIVA: el modelo se comporta distinto' if alerta else 'normal'}")
 
 # --- PASO 4: vigilar también los datos de entrada ------------------------------
 # (pega aquí el bloque del paso 4)
+def deriva_datos(nuevos):
+    avisos = []
+    for s in SENALES:
+        media, desv = entrenamiento[s].mean(), entrenamiento[s].std()
+        error_media = desv / len(nuevos) ** 0.5                # cuánto varía una media de tantas piezas
+        z = (nuevos[s].mean() - media) / error_media
+        if abs(z) > DESVIACIONES:
+            avisos.append(f"{s} ({z:+.0f})")
+    return avisos
+
+print("señales que han cambiado:", deriva_datos(movida) or "ninguna")
 
 # --- PASO 5: las dos comprobaciones sobre la línea de ahora --------------------
 # (pega aquí el bloque del paso 5)
+with sqlite3.connect("file:/data/historial.sqlite?mode=ro", uri=True) as con:
+    ahora = pd.read_sql_query("SELECT temperatura_c, vibracion_mm_s, corriente_a FROM lecturas ORDER BY id DESC LIMIT 120", con)
+ahora["presion_bar"] = 6.0
+print(f"línea de ahora: tasa de revisar={tasa_revisar(ahora):.2f} (base {tasa_base:.2f})")
+print("señales de la línea de ahora que han cambiado:", deriva_datos(ahora) or "ninguna")
+
+# Reto 1: una deriva en otra señal
+otra = base.copy()
+otra["corriente_a"] += 0.3                              # el motor trabaja con más esfuerzo
+tasa_otra = tasa_revisar(otra)
+print(f"corriente +0,3 A: tasa de revisar={tasa_otra:.2f} (base {tasa_base:.2f})  "
+      f"-> {'DERIVA en el modelo' if abs(tasa_otra - tasa_base) > TOLERANCIA else 'el modelo no se entera'}")
+print("señales que han cambiado:", deriva_datos(otra) or "ninguna")
