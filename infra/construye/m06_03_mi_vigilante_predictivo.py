@@ -15,7 +15,7 @@ LIMITE_ALERTA = 70.0           # la alerta TemperaturaHusilloAlta de Prometheus
 
 # --- Decisiones tuyas (las cambiarás en los pasos finales) -------------------
 APRENDER_MIN = 10              # minutos de histórico sano con los que se aprende lo normal
-VIGILAR_S = 30                 # cuánto vigila en el paso 5
+VIGILAR_S = 150                 # cuánto vigila en el paso 5
 VENTANA_S = 120                # con cuántos segundos recientes se calcula la subida
 
 # --- PASO 1: pedir a Prometheus un tramo de la serie (ya está hecho) ---------
@@ -32,12 +32,42 @@ print(f"{len(temp)} muestras de los últimos {APRENDER_MIN} min: mínima={temp.m
 
 # --- PASO 2: hasta dónde llega lo normal ---------------------------------------
 # (pega aquí el bloque del paso 2)
+sanas = temp[temp > 40]                           # fuera las muestras con la estación parada
+limite_normal = np.percentile(sanas, 99.5)
+print(f"lo normal llega hasta {limite_normal:.2f} °C (percentil 99,5 de {len(sanas)} muestras)")
 
 # --- PASO 3: cuánto sube normalmente -------------------------------------------
 # (pega aquí el bloque del paso 3)
+def subida(ts, valores):
+    """Pendiente de la recta que mejor ajusta los valores, en °C por minuto."""
+    return np.polyfit(ts - ts[0], valores, 1)[0] * 60
+
+n = VENTANA_S // 5                                  # muestras por ventana
+pendientes = [subida(t[i:i + n], temp[i:i + n]) for i in range(0, len(temp) - n) if temp[i:i + n].min() > 40]
+subida_max = np.percentile(pendientes, 99.5)
+print(f"subida máxima normal: {subida_max:.2f} °C/min (de {len(pendientes)} ventanas de {VENTANA_S} s)")
 
 # --- PASO 4: prever cuánto falta para la alerta --------------------------------
 # (pega aquí el bloque del paso 4)
+def prever():
+    ts, v = serie(VENTANA_S / 60)
+    ahora, ritmo = v[-1], subida(ts, v)
+    minutos = (LIMITE_ALERTA - ahora) / ritmo if ritmo > 0 else None
+    return ahora, ritmo, minutos
+
+ahora, ritmo, minutos = prever()
+print(f"ahora {ahora:.2f} °C, subida {ritmo:+.2f} °C/min, " +
+      (f"llegaría a 70 °C en {minutos:.0f} min" if minutos else "no sube: no llegará"))
 
 # --- PASO 5: vigilar en modo asistido ------------------------------------------
 # (pega aquí el bloque del paso 5)
+print("hora      temp    subida/min  previsión")
+inicio = time.time()
+while time.time() - inicio < VIGILAR_S:
+    ahora, ritmo, minutos = prever()
+    if ahora > limite_normal and ritmo > subida_max:
+        aviso = f"PROPUESTA: subir refrigeración a 3 (70 °C en ~{minutos:.1f} min). La decide el operario."
+    else:
+        aviso = "normal"
+    print(f"{time.strftime('%H:%M:%S')}  {ahora:6.2f}  {ritmo:+10.2f}  {aviso}")
+    time.sleep(10)
