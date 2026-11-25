@@ -382,3 +382,5 @@ Es un único proceso que tiene cargado el modelo y responde a cualquier aplicaci
 ### En una frase
 
 > 🔑 Publicar el modelo como servicio da un único punto de decisión, con contrato, versión y registro. Si no sabes qué versión dio un dictamen, no puedes explicarlo.
+
+**Ampliación:** [empaquetar tu servicio como contenedor](M07-01.1-empaquetar-contenedor.md) — Dockerfile, build y push a un registro.
