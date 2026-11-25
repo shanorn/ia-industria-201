@@ -23,12 +23,46 @@ print(f"servirá el modelo {VERSION} con huella {HUELLA}")
 
 # --- PASO 2: el contrato de entrada --------------------------------------------
 # (pega aquí el bloque del paso 2)
+class Pieza(BaseModel):
+    pieza_id: str
+    temperatura_c: float
+    vibracion_mm_s: float
+    corriente_a: float
+    presion_bar: float
+
+print("contrato de entrada:", list(Pieza.model_fields))
 
 # --- PASO 3: la salud del servicio ---------------------------------------------
 # (pega aquí el bloque del paso 3)
+app = FastAPI(title="mi servicio de inferencia")
+
+@app.get("/salud")
+def salud():
+    return {"estado": "ok", "version": VERSION, "huella_modelo": HUELLA}
+
+print("direcciones del servicio:", [r.path for r in app.routes if r.path in ("/salud", "/predecir")])
 
 # --- PASO 4: el dictamen -------------------------------------------------------
 # (pega aquí el bloque del paso 4)
+@app.post("/predecir")
+def predecir(pieza: Pieza):
+    fila = pd.DataFrame([pieza.model_dump(exclude={"pieza_id"})])
+    p = float(MODELO.predict_proba(fila)[0, 1])
+    return {"pieza_id": pieza.pieza_id, "dictamen": "revisar" if p >= 0.5 else "seguir", "probabilidad": round(p, 3),
+            "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"), "version": VERSION, "huella_modelo": HUELLA}
+
+print("direcciones del servicio:", [r.path for r in app.routes if r.path in ("/salud", "/predecir")])
 
 # --- PASO 5: llamarlo como un cliente ------------------------------------------
 # (pega aquí el bloque del paso 5)
+cliente = TestClient(app)
+print("GET /salud ->", cliente.get("/salud").json())
+pieza = pd.read_csv("/data/limpio.csv").iloc[0]
+cuerpo = {"pieza_id": pieza["pieza_id"], **{c: float(pieza[c]) for c in ["temperatura_c", "vibracion_mm_s", "corriente_a", "presion_bar"]}}
+r = cliente.post("/predecir", json=cuerpo)
+print(f"POST /predecir -> HTTP {r.status_code}", r.json())
+
+# Una pieza con el sensor de temperatura clavado
+falsa = {**cuerpo, "pieza_id": "CLAVADO", "temperatura_c": 9999}
+r = cliente.post("/predecir", json=falsa)
+print(f"9999 °C -> HTTP {r.status_code}", r.json())
